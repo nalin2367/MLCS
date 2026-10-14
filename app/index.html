@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drug Classification - ML CI/CD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-surface: rgba(18, 24, 38, 0.75);
+      --bg-card: rgba(26, 34, 52, 0.6);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(99, 102, 241, 0.4);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-faint: #64748b;
+      --accent-primary: #6366f1;
+      --accent-secondary: #06b6d4;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+      --accent-glow: 0 0 24px rgba(99, 102, 241, 0.35);
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --error-color: #ef4444;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --shadow-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .badge-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      font-size: 0.8rem;
+      color: #a5b4fc;
+      margin-bottom: 1rem;
+    }
+
+    .badge-bar .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .header h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Architecture Ribbon */
+    .arch-ribbon {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .arch-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    /* Main Card */
+    .card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 1.5rem;
+      transition: border-color 0.3s ease;
+    }
+
+    /* Model Status Bar */
+    .status-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: rgba(10, 14, 23, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 1.75rem;
+      font-size: 0.85rem;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .status-icon {
+      font-size: 1rem;
+    }
+
+    #status-text {
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .engine-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: #94a3b8;
+    }
+
+    /* Presets */
+    .presets-box {
+      margin-bottom: 1.75rem;
+    }
+
+    .presets-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      margin-bottom: 0.6rem;
+      font-weight: 700;
+    }
+
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .preset-btn strong {
+      color: var(--text-main);
+      font-size: 0.82rem;
+    }
+
+    .preset-btn:hover {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: var(--border-highlight);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    input, select {
+      width: 100%;
+      background: rgba(10, 14, 23, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.92rem;
+      padding: 0.7rem 0.9rem;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      background: rgba(10, 14, 23, 0.95);
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    /* Button */
+    .btn-submit {
+      width: 100%;
+      padding: 0.9rem 1.5rem;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent-gradient);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      opacity: 0.95;
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-submit:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+      box-shadow: none;
+    }
+
+    /* Results section */
+    #result {
+      margin-top: 1.75rem;
+      padding: 1.5rem;
+      background: rgba(10, 14, 23, 0.8);
+      border: 1px solid var(--border-highlight);
+      border-radius: var(--radius-md);
+      display: none;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.25rem;
+    }
+
+    .prediction-highlight {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .prediction-highlight span {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-faint);
+      font-weight: 700;
+    }
+
+    .prediction-highlight strong {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: -0.02em;
+    }
+
+    .confidence-highlight {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .confidence-highlight span {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-faint);
+      font-weight: 700;
+    }
+
+    .confidence-highlight strong {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #34d399;
+      letter-spacing: -0.02em;
+    }
+
+    /* Probabilities bars */
+    .prob-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .prob-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-faint);
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .prob-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.82rem;
+    }
+
+    .prob-name {
+      width: 60px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .prob-bar-container {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .prob-bar {
+      height: 100%;
+      background: var(--accent-gradient);
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .prob-percent {
+      width: 55px;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    /* Disclaimer & Footer */
+    .disclaimer-box {
+      margin-top: 1.5rem;
+      padding: 0.85rem 1.1rem;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: var(--radius-md);
+      font-size: 0.78rem;
+      color: #fca5a5;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--text-faint);
+    }
+
+    @media (max-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .header h1 {
+        font-size: 1.75rem;
+      }
+      .card {
+        padding: 1.25rem;
+      }
+      .result-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .confidence-highlight {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Header -->
+    <header class="header">
+      <div class="badge-bar">
+        <span class="pulse-dot"></span>
+        <span>Client-Side ONNX Runtime Web • Zero Server Compute</span>
+      </div>
+      <h1>Drug Classification Inference</h1>
+      <p>Automated Scikit-Learn Pipeline deployed to Hugging Face Static Space via GitHub Actions and CML evaluation reporting.</p>
+    </header>
+
+    <!-- Architecture Ribbon -->
+    <div class="arch-ribbon">
+      <div class="arch-pill">🚀 GitHub Actions CI/CD</div>
+      <div class="arch-pill">📊 CML Automated Reports</div>
+      <div class="arch-pill">⚡ ONNX Runtime Web (Wasm)</div>
+      <div class="arch-pill">🌐 Hugging Face Static Space</div>
+    </div>
+
+    <!-- Main Card -->
+    <main class="card">
+      
+      <!-- Status Bar -->
+      <div class="status-container">
+        <div class="status-left">
+          <span class="status-icon" id="status-icon">⏳</span>
+          <span id="status-text">Loading model...</span>
+        </div>
+        <span class="engine-tag">ort-web @ 1.19.2</span>
+      </div>
+
+      <!-- Presets -->
+      <div class="presets-box">
+        <div class="presets-label">Quick Test Presets:</div>
+        <div class="presets-grid">
+          <button type="button" class="preset-btn" onclick="applyPreset(30, 'F', 'NORMAL', 'NORMAL', 15.0)">
+            <strong>Sample 1</strong>
+            <span>30y • F • Na/K 15.0</span>
+          </button>
+          <button type="button" class="preset-btn" onclick="applyPreset(23, 'F', 'HIGH', 'HIGH', 25.355)">
+            <strong>Sample 2</strong>
+            <span>23y • F • High Na/K</span>
+          </button>
+          <button type="button" class="preset-btn" onclick="applyPreset(47, 'M', 'LOW', 'HIGH', 13.093)">
+            <strong>Sample 3</strong>
+            <span>47y • M • Low BP</span>
+          </button>
+          <button type="button" class="preset-btn" onclick="applyPreset(28, 'F', 'NORMAL', 'HIGH', 7.798)">
+            <strong>Sample 4</strong>
+            <span>28y • F • Low Na/K</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <form id="predict-form">
+        <div class="form-grid">
+          
+          <div class="form-group">
+            <label for="age">Age (years)</label>
+            <input type="number" id="age" name="age" min="1" max="120" value="30" required placeholder="e.g. 30">
+          </div>
+
+          <div class="form-group">
+            <label for="sex">Sex</label>
+            <select id="sex" name="sex" required>
+              <option value="F">Female (F)</option>
+              <option value="M">Male (M)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bp">Blood Pressure (BP)</label>
+            <select id="bp" name="bp" required>
+              <option value="HIGH">HIGH</option>
+              <option value="NORMAL" selected>NORMAL</option>
+              <option value="LOW">LOW</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cholesterol">Cholesterol</label>
+            <select id="cholesterol" name="cholesterol" required>
+              <option value="HIGH">HIGH</option>
+              <option value="NORMAL" selected>NORMAL</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="na_to_k">Sodium to Potassium Ratio (Na_to_K)</label>
+            <input type="number" step="0.001" id="na_to_k" name="na_to_k" min="0" value="15.0" required placeholder="e.g. 15.0">
+          </div>
+
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn-submit" disabled>
+          <span>Run Browser Inference</span>
+          <span>→</span>
+        </button>
+
+        <!-- Prediction Result -->
+        <div id="result">
+          <div class="result-header">
+            <div class="prediction-highlight">
+              <span>Predicted Class</span>
+              <strong id="predicted-class">—</strong>
+            </div>
+            <div class="confidence-highlight">
+              <span>Model Confidence</span>
+              <strong id="confidence">—</strong>
+            </div>
+          </div>
+
+          <div class="prob-breakdown">
+            <div class="prob-title">Class Probability Distribution</div>
+            <div id="prob-bars"></div>
+          </div>
+        </div>
+
+      </form>
+
+    </main>
+
+    <!-- Medical Disclaimer -->
+    <div class="disclaimer-box">
+      ⚠️ <strong>Educational Demonstration Only:</strong> This machine learning model is intended strictly for educational and technical CI/CD demonstration purposes. It is not a clinical or medical decision support tool. Never make medical or pharmacological decisions based on its predictions.
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      Automated MLOps Pipeline with GitHub Actions • CML • Hugging Face Spaces • ONNX Runtime Web
+    </footer>
+
+  </div>
+
+  <script>
+    // Robust path resolution for both local testing and Hugging Face Static Space
+    const getModelUrl = () => {
+      if (window.location.pathname.includes("/app/")) {
+        return "../model/drug_model.onnx";
+      }
+      return "model/drug_model.onnx";
+    };
+
+    let session = null;
+    let classLabels = ["drugA", "drugB", "drugC", "drugX", "drugY"];
+
+    const statusIcon = document.getElementById("status-icon");
+    const statusText = document.getElementById("status-text");
+    const submitBtn = document.getElementById("submit-btn");
+    const resultDiv = document.getElementById("result");
+    const predictedClassEl = document.getElementById("predicted-class");
+    const confidenceEl = document.getElementById("confidence");
+    const probBarsEl = document.getElementById("prob-bars");
+
+    function applyPreset(age, sex, bp, chol, naToK) {
+      document.getElementById("age").value = age;
+      document.getElementById("sex").value = sex;
+      document.getElementById("bp").value = bp;
+      document.getElementById("cholesterol").value = chol;
+      document.getElementById("na_to_k").value = naToK;
+      if (session) {
+        document.getElementById("predict-form").dispatchEvent(new Event("submit", { cancelable: true }));
+      }
+    }
+
+    async function loadModel() {
+      try {
+        statusIcon.textContent = "⏳";
+        statusText.textContent = "Loading model...";
+        
+        let loaded = false;
+        const candidates = [getModelUrl(), "model/drug_model.onnx", "../model/drug_model.onnx"];
+        
+        for (const url of candidates) {
+          try {
+            session = await ort.InferenceSession.create(url);
+            loaded = true;
+            console.log(`Loaded ONNX model from: ${url}`);
+            break;
+          } catch (e) {
+            console.warn(`Could not load from ${url}:`, e);
+          }
+        }
+
+        if (!loaded) {
+          throw new Error("Could not load drug_model.onnx from any candidate path.");
+        }
+        
+        statusIcon.textContent = "✅";
+        statusText.textContent = "Model loaded.";
+        submitBtn.disabled = false;
+      } catch (err) {
+        console.error("Failed to load ONNX model:", err);
+        statusIcon.textContent = "❌";
+        statusText.textContent = "Failed to load model/drug_model.onnx. Run training first or check network.";
+      }
+    }
+
+    async function predict(event) {
+      event.preventDefault();
+      if (!session) return;
+
+      try {
+        const age = Number(document.getElementById("age").value);
+        const sex = document.getElementById("sex").value;
+        const bp = document.getElementById("bp").value;
+        const cholesterol = document.getElementById("cholesterol").value;
+        const naToK = Number(document.getElementById("na_to_k").value);
+
+        // Build ort.Tensor feeds exactly as required by the exported ONNX model
+        const feeds = {
+          Age: new ort.Tensor("int64", BigInt64Array.from([BigInt(Math.round(age))]), [1, 1]),
+          Sex: new ort.Tensor("string", [sex], [1, 1]),
+          BP: new ort.Tensor("string", [bp], [1, 1]),
+          Cholesterol: new ort.Tensor("string", [cholesterol], [1, 1]),
+          Na_to_K: new ort.Tensor("float64", Float64Array.from([naToK]), [1, 1]),
+        };
+
+        const output = await session.run(feeds);
+        
+        // Output label and probabilities
+        const label = output.label.data[0];
+        const probs = Array.from(output.probabilities.data);
+        const maxProb = Math.max(...probs);
+
+        predictedClassEl.textContent = label;
+        confidenceEl.textContent = (maxProb * 100).toFixed(2) + "%";
+
+        // Render probabilities distribution breakdown
+        probBarsEl.innerHTML = "";
+        classLabels.forEach((cLabel, idx) => {
+          const prob = probs[idx] !== undefined ? probs[idx] : 0;
+          const pct = (prob * 100).toFixed(1);
+          const isWinner = cLabel === label;
+
+          const row = document.createElement("div");
+          row.className = "prob-row";
+          row.innerHTML = `
+            <span class="prob-name" style="${isWinner ? 'color: #38bdf8; font-weight: 700;' : ''}">${cLabel}</span>
+            <div class="prob-bar-container">
+              <div class="prob-bar" style="width: ${pct}%; ${isWinner ? 'background: linear-gradient(135deg, #38bdf8, #818cf8);' : 'background: rgba(255, 255, 255, 0.2);'}"></div>
+            </div>
+            <span class="prob-percent" style="${isWinner ? 'color: #38bdf8; font-weight: 700;' : ''}">${pct}%</span>
+          `;
+          probBarsEl.appendChild(row);
+        });
+
+        resultDiv.style.display = "block";
+      } catch (err) {
+        console.error("Inference execution failed:", err);
+        alert("Inference failed: " + err.message);
+      }
+    }
+
+    document.getElementById("predict-form").addEventListener("submit", predict);
+    loadModel();
+  </script>
+</body>
+</html>
