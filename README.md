@@ -1,6 +1,6 @@
-# Drug Classification: End-to-End ML CI/CD Pipeline with ONNX Runtime Web
+# MLCS — Drug Classification ML CI/CD Pipeline
 
-[![CI/CD Pipeline](https://github.com/YOUR_USERNAME/ml-cicd-gradio-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/ml-cicd-gradio-lite/actions)
+[![CI/CD Pipeline](https://github.com/nalin2367/MLCS/actions/workflows/ci.yml/badge.svg)](https://github.com/nalin2367/MLCS/actions)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
 [![ONNX Runtime Web](https://img.shields.io/badge/ONNX%20Runtime-WebAssembly-blue)](https://onnxruntime.ai/)
 
